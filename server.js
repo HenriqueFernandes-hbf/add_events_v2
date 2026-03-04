@@ -33,8 +33,21 @@ function parseDate(value) {
   return Number.isNaN(parsed.getTime()) ? null : value;
 }
 
+function hasValue(value) {
+  if (value === undefined || value === null) return false;
+  return typeof value !== "string" || value.trim() !== "";
+}
+
+function parseOptionalDate(value) {
+  if (!hasValue(value)) return { ok: true, value: null };
+  const parsed = parseDate(value);
+  return parsed ? { ok: true, value: parsed } : { ok: false, value: null };
+}
+
 app.post("/events", async (req, res) => {
   const body = req.body ?? {};
+  // log incoming payload for debugging
+  console.debug("POST /events body:", JSON.stringify(body));
   const name = typeof body.name === "string" ? body.name.trim() : "";
   const location = typeof body.location === "string" ? body.location.trim() : "";
   const startDate = body.start_date ?? body.startDate;
@@ -72,11 +85,23 @@ app.post("/events", async (req, res) => {
 
   const parsedStart = parseDate(startDate);
   const parsedEnd = parseDate(endDate ?? startDate);
+  const parsedRegistrationStart = parseOptionalDate(registrationStart);
+  const parsedRegistrationEnd = parseOptionalDate(registrationEnd);
   if (!parsedStart || !parsedEnd) {
     return res.status(400).json({ message: "Invalid start_date or end_date." });
   }
+  if (!parsedRegistrationStart.ok || !parsedRegistrationEnd.ok) {
+    return res.status(400).json({ message: "Invalid registration_start or registration_end." });
+  }
   if (new Date(parsedEnd) < new Date(parsedStart)) {
     return res.status(400).json({ message: "end_date must be >= start_date." });
+  }
+  if (
+    parsedRegistrationStart.value &&
+    parsedRegistrationEnd.value &&
+    new Date(parsedRegistrationEnd.value) < new Date(parsedRegistrationStart.value)
+  ) {
+    return res.status(400).json({ message: "registration_end must be >= registration_start." });
   }
 
   const shouldCancel = status === "Cancelled";
@@ -173,21 +198,22 @@ app.post("/events", async (req, res) => {
         resolvedCancellationReason,
         resolvedCancellationDate,
         coverImage,
-        privateCode,
         city,
         address,
-        registrationStart,
-        registrationEnd,
+        parsedRegistrationStart.value,
+        parsedRegistrationEnd.value,
         eventCategory,
         eventMode,
         eventParticipation,
+        privateCode,
       ]
     );
 
     return res.status(201).json(rows[0]);
   } catch (err) {
     console.error("Error creating event:", err);
-    return res.status(500).json({ message: "Failed to create event." });
+    // return error message in response for easier debugging (remove in production)
+    return res.status(500).json({ message: err.message || "Failed to create event." });
   }
 });
 
@@ -247,6 +273,21 @@ app.put("/events/:id", async (req, res) => {
     event_participation,
   } = req.body;
 
+  const parsedUpdateRegistrationStart = parseOptionalDate(registration_start);
+  const parsedUpdateRegistrationEnd = parseOptionalDate(registration_end);
+
+  if (!parsedUpdateRegistrationStart.ok || !parsedUpdateRegistrationEnd.ok) {
+    return res.status(400).json({ message: "Invalid registration_start or registration_end." });
+  }
+
+  if (
+    parsedUpdateRegistrationStart.value &&
+    parsedUpdateRegistrationEnd.value &&
+    new Date(parsedUpdateRegistrationEnd.value) < new Date(parsedUpdateRegistrationStart.value)
+  ) {
+    return res.status(400).json({ message: "registration_end must be >= registration_start." });
+  }
+
   try {
     const { rowCount, rows } = await pool.query(
       `
@@ -292,8 +333,8 @@ app.put("/events/:id", async (req, res) => {
         private_code,
         city,
         address,
-        registration_start,
-        registration_end,
+        parsedUpdateRegistrationStart.value,
+        parsedUpdateRegistrationEnd.value,
         event_category,
         event_mode,
         event_participation,

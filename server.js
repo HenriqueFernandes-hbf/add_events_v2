@@ -146,6 +146,158 @@ app.post("/events", async (req, res) => {
   }
 });
 
+app.delete("/events/:id", async (req, res) => {
+  const eventId = parseId(req.params.id);
+
+  if (!eventId) {
+    return res.status(400).json({ message: "Invalid event id." });
+  }
+
+  try {
+    const { rowCount } = await pool.query(
+      "DELETE FROM events WHERE id = $1",
+      [eventId]
+    );
+
+    if (rowCount === 0) {
+      return res.status(404).json({ message: "Event not found." });
+    }
+
+    return res.json({ message: "Event deleted successfully." });
+  } catch (err) {
+    console.error("Error deleting event:", err);
+    return res.status(500).json({ message: "Failed to delete event." });
+  }
+});
+
+
+app.put("/events/:id", async (req, res) => {
+  const eventId = parseId(req.params.id);
+
+  if (!eventId) {
+    return res.status(400).json({ message: "Invalid event id." });
+  }
+
+  const {
+    name,
+    location,
+    start_date,
+    end_date,
+    sport_id,
+    access_level,
+    contact_information,
+    organizer_name,
+    description,
+    status,
+    cancellation_reason,
+    cancellation_date,
+  } = req.body;
+
+  try {
+    const { rowCount, rows } = await pool.query(
+      `
+      UPDATE events SET
+        name = COALESCE($1, name),
+        location = COALESCE($2, location),
+        start_date = COALESCE($3, start_date),
+        end_date = COALESCE($4, end_date),
+        sport_id = COALESCE($5, sport_id),
+        access_level = COALESCE($6, access_level),
+        contact_information = COALESCE($7, contact_information),
+        organizer_name = COALESCE($8, organizer_name),
+        description = COALESCE($9, description),
+        status = COALESCE($10, status),
+        cancellation_reason = COALESCE($11, cancellation_reason),
+        cancellation_date = COALESCE($12, cancellation_date)
+      WHERE id = $13
+      RETURNING *;
+      `,
+      [
+        name,
+        location,
+        start_date,
+        end_date,
+        sport_id,
+        access_level,
+        contact_information,
+        organizer_name,
+        description,
+        status,
+        cancellation_reason,
+        cancellation_date,
+        eventId,
+      ]
+    );
+
+    if (rowCount === 0) {
+      return res.status(404).json({ message: "Event not found." });
+    }
+
+    return res.json(rows[0]);
+  } catch (err) {
+    console.error("Error updating event:", err);
+    return res.status(500).json({ message: "Failed to update event." });
+  }
+});
+
+app.get("/events", async (_req, res) => {
+  try {
+    const { rows } = await pool.query(
+      `SELECT 
+        id,
+        name,
+        start_date,
+        end_date,
+        location,
+        sport_id,
+        access_level,
+        contact_information,
+        organizer_name,
+        created_by,
+        description,
+        status,
+        cancellation_reason,
+        cancellation_date
+       FROM events
+       ORDER BY start_date ASC`
+    );
+
+    return res.json(rows);
+  } catch (err) {
+    console.error("Error fetching events:", err);
+    return res.status(500).json({ message: "Failed to fetch events." });
+  }
+});
+
+app.get("/events/:id", async (req, res) => {
+  const eventId = parseId(req.params.id);
+
+  if (!eventId) {
+    return res.status(400).json({ message: "Invalid event id." });
+  }
+
+  try {
+    const { rows } = await pool.query(
+      "SELECT * FROM events WHERE id = $1",
+      [eventId]
+    );
+
+    if (rows.length === 0) {
+      return res.status(404).json({ message: "Event not found." });
+    }
+
+    return res.json(rows[0]);
+  } catch (err) {
+    console.error("Error fetching event:", err);
+    return res.status(500).json({ message: "Failed to fetch event." });
+  }
+});
+
+
+
+
+
+
 app.get("/health", (_req, res) => res.json({ ok: true }));
 
 const port = process.env.PORT || 4000;

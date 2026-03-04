@@ -20,7 +20,7 @@ const pool = new Pool({
 });
 
 const allowedAccessLevels = new Set(["Public", "Private"]);
-const allowedStatuses = new Set(["Scheduled", "Cancelled", "Completed"]);
+const allowedStatuses = new Set(["Scheduled", "Cancelled", "Completed", "Pending"]);
 
 function parseId(value) {
   const parsed = Number(value);

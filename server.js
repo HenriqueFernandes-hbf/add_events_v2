@@ -48,6 +48,14 @@ app.post("/events", async (req, res) => {
   const status = body.status ?? "Scheduled";
   const cancellationReason = body.cancellation_reason ?? body.cancellationReason ?? null;
   const cancellationDate = body.cancellation_date ?? body.cancellationDate ?? null;
+  const privateCode = body.private_code ?? body.privateCode ?? null;
+  const city = body.city ?? null;
+  const address = body.address ?? null;
+  const registrationStart = body.registration_start ?? body.registrationStart ?? null;
+  const registrationEnd = body.registration_end ?? body.registrationEnd ?? null;
+  const eventCategory = body.event_category ?? body.eventCategory ?? null;
+  const eventMode = body.event_mode ?? body.eventMode ?? null;
+  const eventParticipation = body.event_participation ?? body.eventParticipation ?? null;
 
   if (!name || !location || !startDate || !sportId || !createdBy) {
     return res.status(400).json({ message: "Missing required fields." });
@@ -90,7 +98,15 @@ app.post("/events", async (req, res) => {
         description,
         status,
         cancellation_reason,
-        cancellation_date
+        cancellation_date,
+        private_code,
+        city,
+        address,
+        registration_start,
+        registration_end,
+        event_category,
+        event_mode,
+        event_participation
       ) VALUES (
         $1,
         $2,
@@ -104,7 +120,15 @@ app.post("/events", async (req, res) => {
         $10,
         $11,
         $12,
-        $13
+        $13,
+        $14,
+        $15,
+        $16,
+        $17,
+        $18,
+        $19,
+        $20,
+        $21
       )
       RETURNING
         id,
@@ -120,7 +144,15 @@ app.post("/events", async (req, res) => {
         description,
         status,
         cancellation_reason,
-        cancellation_date;
+        cancellation_date,
+        private_code,
+        city,
+        address,
+        registration_start,
+        registration_end,
+        event_category,
+        event_mode,
+        event_participation;
       `,
       [
         name,
@@ -136,6 +168,14 @@ app.post("/events", async (req, res) => {
         status,
         resolvedCancellationReason,
         resolvedCancellationDate,
+        privateCode,
+        city,
+        address,
+        registrationStart,
+        registrationEnd,
+        eventCategory,
+        eventMode,
+        eventParticipation,
       ]
     );
 
@@ -191,6 +231,14 @@ app.put("/events/:id", async (req, res) => {
     status,
     cancellation_reason,
     cancellation_date,
+    private_code,
+    city,
+    address,
+    registration_start,
+    registration_end,
+    event_category,
+    event_mode,
+    event_participation,
   } = req.body;
 
   try {
@@ -208,8 +256,16 @@ app.put("/events/:id", async (req, res) => {
         description = COALESCE($9, description),
         status = COALESCE($10, status),
         cancellation_reason = COALESCE($11, cancellation_reason),
-        cancellation_date = COALESCE($12, cancellation_date)
-      WHERE id = $13
+        cancellation_date = COALESCE($12, cancellation_date),
+        private_code = COALESCE($13, private_code),
+        city = COALESCE($14, city),
+        address = COALESCE($15, address),
+        registration_start = COALESCE($16, registration_start),
+        registration_end = COALESCE($17, registration_end),
+        event_category = COALESCE($18, event_category),
+        event_mode = COALESCE($19, event_mode),
+        event_participation = COALESCE($20, event_participation)
+      WHERE id = $21
       RETURNING *;
       `,
       [
@@ -225,6 +281,14 @@ app.put("/events/:id", async (req, res) => {
         status,
         cancellation_reason,
         cancellation_date,
+        private_code,
+        city,
+        address,
+        registration_start,
+        registration_end,
+        event_category,
+        event_mode,
+        event_participation,
         eventId,
       ]
     );
@@ -257,7 +321,15 @@ app.get("/events", async (_req, res) => {
         description,
         status,
         cancellation_reason,
-        cancellation_date
+        cancellation_date,
+        private_code,
+        city,
+        address,
+        registration_start,
+        registration_end,
+        event_category,
+        event_mode,
+        event_participation
        FROM events
        ORDER BY start_date ASC`
     );

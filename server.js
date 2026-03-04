@@ -101,14 +101,14 @@ app.post("/events", async (req, res) => {
         cancellation_reason,
         cancellation_date,
         cover_image,
-        private_code,
         city,
         address,
         registration_start,
         registration_end,
         event_category,
         event_mode,
-        event_participation
+        event_participation,
+        private_code
       ) VALUES (
         $1,
         $2,

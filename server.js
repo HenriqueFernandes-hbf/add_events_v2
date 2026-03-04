@@ -48,6 +48,7 @@ app.post("/events", async (req, res) => {
   const status = body.status ?? "Scheduled";
   const cancellationReason = body.cancellation_reason ?? body.cancellationReason ?? null;
   const cancellationDate = body.cancellation_date ?? body.cancellationDate ?? null;
+  const coverImage = body.cover_image ?? body.coverImage ?? null;
   const privateCode = body.private_code ?? body.privateCode ?? null;
   const city = body.city ?? null;
   const address = body.address ?? null;
@@ -99,6 +100,7 @@ app.post("/events", async (req, res) => {
         status,
         cancellation_reason,
         cancellation_date,
+        cover_image,
         private_code,
         city,
         address,
@@ -128,7 +130,8 @@ app.post("/events", async (req, res) => {
         $18,
         $19,
         $20,
-        $21
+        $21,
+        $22
       )
       RETURNING
         id,
@@ -145,6 +148,7 @@ app.post("/events", async (req, res) => {
         status,
         cancellation_reason,
         cancellation_date,
+        cover_image,
         private_code,
         city,
         address,
@@ -168,6 +172,7 @@ app.post("/events", async (req, res) => {
         status,
         resolvedCancellationReason,
         resolvedCancellationDate,
+        coverImage,
         privateCode,
         city,
         address,
@@ -231,6 +236,7 @@ app.put("/events/:id", async (req, res) => {
     status,
     cancellation_reason,
     cancellation_date,
+    cover_image,
     private_code,
     city,
     address,
@@ -257,15 +263,16 @@ app.put("/events/:id", async (req, res) => {
         status = COALESCE($10, status),
         cancellation_reason = COALESCE($11, cancellation_reason),
         cancellation_date = COALESCE($12, cancellation_date),
-        private_code = COALESCE($13, private_code),
-        city = COALESCE($14, city),
-        address = COALESCE($15, address),
-        registration_start = COALESCE($16, registration_start),
-        registration_end = COALESCE($17, registration_end),
-        event_category = COALESCE($18, event_category),
-        event_mode = COALESCE($19, event_mode),
-        event_participation = COALESCE($20, event_participation)
-      WHERE id = $21
+        cover_image = COALESCE($13, cover_image),
+        private_code = COALESCE($14, private_code),
+        city = COALESCE($15, city),
+        address = COALESCE($16, address),
+        registration_start = COALESCE($17, registration_start),
+        registration_end = COALESCE($18, registration_end),
+        event_category = COALESCE($19, event_category),
+        event_mode = COALESCE($20, event_mode),
+        event_participation = COALESCE($21, event_participation)
+      WHERE id = $22
       RETURNING *;
       `,
       [
@@ -281,6 +288,7 @@ app.put("/events/:id", async (req, res) => {
         status,
         cancellation_reason,
         cancellation_date,
+        cover_image,
         private_code,
         city,
         address,
@@ -322,6 +330,7 @@ app.get("/events", async (_req, res) => {
         status,
         cancellation_reason,
         cancellation_date,
+        cover_image,
         private_code,
         city,
         address,

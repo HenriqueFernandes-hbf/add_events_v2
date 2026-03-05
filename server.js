@@ -44,6 +44,12 @@ function parseOptionalDate(value) {
   return parsed ? { ok: true, value: parsed } : { ok: false, value: null };
 }
 
+function parseOptionalInteger(value) {
+  if (!hasValue(value)) return { ok: true, value: null };
+  const parsed = Number(value);
+  return Number.isInteger(parsed) ? { ok: true, value: parsed } : { ok: false, value: null };
+}
+
 function buildDbErrorResponse(err, fallbackMessage) {
   if (err?.code === "22P02") {
     return {
@@ -89,6 +95,7 @@ app.post("/events", async (req, res) => {
   const eventCategory = body.event_category ?? body.eventCategory ?? null;
   const eventMode = body.event_mode ?? body.eventMode ?? null;
   const eventParticipation = body.event_participation ?? body.eventParticipation ?? null;
+  const participants = body.participants ?? null;
 
   if (!name || !location || !startDate || !sportId || !createdBy) {
     return res.status(400).json({ message: "Missing required fields." });
@@ -106,11 +113,15 @@ app.post("/events", async (req, res) => {
   const parsedEnd = parseDate(endDate ?? startDate);
   const parsedRegistrationStart = parseOptionalDate(registrationStart);
   const parsedRegistrationEnd = parseOptionalDate(registrationEnd);
+  const parsedParticipants = parseOptionalInteger(participants);
   if (!parsedStart || !parsedEnd) {
     return res.status(400).json({ message: "Invalid start_date or end_date." });
   }
   if (!parsedRegistrationStart.ok || !parsedRegistrationEnd.ok) {
     return res.status(400).json({ message: "Invalid registration_start or registration_end." });
+  }
+  if (!parsedParticipants.ok) {
+    return res.status(400).json({ message: "Invalid participants." });
   }
   if (new Date(parsedEnd) < new Date(parsedStart)) {
     return res.status(400).json({ message: "end_date must be >= start_date." });
@@ -152,7 +163,8 @@ app.post("/events", async (req, res) => {
         event_category,
         event_mode,
         event_participation,
-        private_code
+        private_code,
+        participants
       ) VALUES (
         $1,
         $2,
@@ -175,7 +187,8 @@ app.post("/events", async (req, res) => {
         $19,
         $20,
         $21,
-        $22
+        $22,
+        $23
       )
       RETURNING
         id,
@@ -200,7 +213,8 @@ app.post("/events", async (req, res) => {
         registration_end,
         event_category,
         event_mode,
-        event_participation;
+        event_participation,
+        participants;
       `,
       [
         name,
@@ -225,6 +239,7 @@ app.post("/events", async (req, res) => {
         eventMode,
         eventParticipation,
         privateCode,
+        parsedParticipants.value,
       ]
     );
 
@@ -290,13 +305,18 @@ app.put("/events/:id", async (req, res) => {
     event_category,
     event_mode,
     event_participation,
+    participants,
   } = req.body;
 
   const parsedUpdateRegistrationStart = parseOptionalDate(registration_start);
   const parsedUpdateRegistrationEnd = parseOptionalDate(registration_end);
+  const parsedUpdateParticipants = parseOptionalInteger(participants);
 
   if (!parsedUpdateRegistrationStart.ok || !parsedUpdateRegistrationEnd.ok) {
     return res.status(400).json({ message: "Invalid registration_start or registration_end." });
+  }
+  if (!parsedUpdateParticipants.ok) {
+    return res.status(400).json({ message: "Invalid participants." });
   }
 
   if (
@@ -331,8 +351,9 @@ app.put("/events/:id", async (req, res) => {
         registration_end = COALESCE($18, registration_end),
         event_category = COALESCE($19, event_category),
         event_mode = COALESCE($20, event_mode),
-        event_participation = COALESCE($21, event_participation)
-      WHERE id = $22
+        event_participation = COALESCE($21, event_participation),
+        participants = COALESCE($22, participants)
+      WHERE id = $23
       RETURNING *;
       `,
       [
@@ -357,6 +378,7 @@ app.put("/events/:id", async (req, res) => {
         event_category,
         event_mode,
         event_participation,
+        parsedUpdateParticipants.value,
         eventId,
       ]
     );
@@ -399,7 +421,8 @@ app.get("/events", async (_req, res) => {
         registration_end,
         event_category,
         event_mode,
-        event_participation
+        event_participation,
+        participants
        FROM events
        ORDER BY start_date ASC`
     );
